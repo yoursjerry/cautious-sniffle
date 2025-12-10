@@ -1,5 +1,6 @@
 enable-magisk-update = true # set this to false if you do not want to receive updates for the module in magisk app
 parallel-jobs = 1
+patches-version = "dev"
 
 # add 'enabled = false' for not patching 
 
@@ -21,6 +22,8 @@ build-mode = "both"
 [Twitter]
 version = "latest"
 dpi = "120-640"
+arch = "arm64-v8a"
 build-mode = "both"
-apkmirror-dlurl = "https://apkmirror.com/apk/twitter-inc/twitter/"
+#apkmirror-dlurl = "https://apkmirror.com/apk/twitter-inc/twitter/"
+uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 included-patches = "'Hide view count'"
