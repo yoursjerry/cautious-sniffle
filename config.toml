@@ -19,22 +19,80 @@ archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.y
 [Instagram]
 apkmirror-dlurl = "https://apkmirror.com/apk/instagram/instagram-instagram/"
 uptodown-dlurl = "https://instagram.en.uptodown.com/android"
-#archive-dlurl = "https://archive.org/download/com.instagram.android_409.0.0.48.170/com.instagram.android_409.0.0.48.170-381602717_1dpi_6feat_da70186c770d2a4ca02015d63f41c275_apkmirror.com.apkm"
-build-mode = "both"
-version = "latest"
 arch = "arm64-v8a"
+build-mode = "both"
 dpi = "480"
+version = "latest"
 included-patches = "'Hide ads' 'Sanitize sharing links' 'Disable signature check'"
 exclusive-patches = true
 
-[Instagram]
-apkmirror-dlurl = "https://apkmirror.com/apk/instagram/instagram-instagram/"
-uptodown-dlurl = "https://instagram.en.uptodown.com/android"
-#archive-dlurl = "https://archive.org/download/com.instagram.android_409.0.0.48.170/com.instagram.android_409.0.0.48.170-381602717_1dpi_6feat_da70186c770d2a4ca02015d63f41c275_apkmirror.com.apkm"
+[Music]
+enabled = false
 build-mode = "both"
+arch = "both"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube-music"
+uptodown-dlurl = "https://youtube-music.en.uptodown.com/android"
+archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.apps.youtube.music"
+
+[GooglePhotos]
+enabled = false
+build-mode = "both"
+arch = "both"
 version = "auto"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/photos/"
+uptodown-dlurl = "https://google-photos.en.uptodown.com/android"
+archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.apps.photos"
+
+[Spotify]
+enabled = false
+uptodown-dlurl = "https://spotify.en.uptodown.com/android"
+archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.spotify.music"
+
+# https://github.com/j-hc/revanced-magisk-module/issues/554
+[Music-Extended]
+enabled = false
+app-name = "Music"
+patches-source = "inotia00/revanced-patches"
+cli-source = "inotia00/revanced-cli"
+rv-brand = "ReVanced Extended"
+build-mode = "both"
+arch = "both"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube-music"
+
+[YouTube-Extended]
+enabled = false
+app-name = "YouTube"
+patches-source = "inotia00/revanced-patches"
+cli-source = "inotia00/revanced-cli"
+rv-brand = "ReVanced Extended"
+build-mode = "both"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube"
+
+[Twitch]
+enabled = false
+apkmirror-dlurl = "https://www.apkmirror.com/apk/twitch-interactive-inc/twitch/"
+uptodown-dlurl = "https://twitch.en.uptodown.com/android"
+# archive-dlurl = "https://archive.org/download/jhc-apks/apks/tv.twitch.android.app"
+
+[Twitter]
+apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
+build-mode = "apk"
+dpi = "120-640dpi"
+# archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.twitter.android"
+
+[TikTok]
+enabled = false
+# archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.zhiliaoapp.musically"
+included-patches = "'SIM spoof'"
+
+[Messenger]
+enabled = false
+apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-2/messenger/"
 arch = "arm64-v8a"
-dpi = "480"
+
+[IconPackStudio]
+enabled = false
+apkmirror-dlurl = "https://www.apkmirror.com/apk/smart-launcher-team/icon-pack-studio/"dpi = "480"
 included-patches = "'Hide ads' 'Sanitize sharing links' 'Disable signature check'"
 exclusive-patches = true
 
