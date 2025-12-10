@@ -10,5 +10,5 @@ dpi = "480"
 arch = "arm64-v8a"
 build-mode = "both"
 version = "latest"
-included-patches = "'Hide ads' 'Sanitize sharing links' 'Disable signature check'"
+included-patches = "'Hide ads' 'Sanitize sharing links' 'Disable signature check' 'Disable Pairip license check'"
 exclusive-patches = true
