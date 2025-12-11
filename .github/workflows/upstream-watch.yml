@@ -26,7 +26,7 @@ jobs:
           fi
 
           if [ -f config.json ]; then
-            VAL=$(grep -Eo '"upstream_repo"\s*:\s*"[^"]+' config.json | sed -E 's/.*"upstream_repo"\s*:\s*"//' )
+            VAL=$(grep -Eo '"upstream_repo"\s*:\s*"[^"]+' config.json | sed -E 's/.*"upstream_repo"\s*:\s*"//')
             if [ -n "$VAL" ]; then
               echo "repo=$VAL" >> $GITHUB_OUTPUT
               exit 0
@@ -52,21 +52,25 @@ jobs:
           REPO=${{ steps.upstream.outputs.repo }}
           echo "Checking releases for $REPO"
 
-          # get latest tag (release or prerelease)
-          TAG=$(curl -s https://api.github.com/repos/$REPO/releases | jq -r '.[0].tag_name' )
+          # Get latest release OR prerelease
+          TAG=$(curl -s https://api.github.com/repos/$REPO/releases | jq -r '.[0].tag_name')
 
           if [ "$TAG" = "null" ] || [ -z "$TAG" ]; then
-            # fallback to dev/nightly (latest commit tag)
+            echo "No release/prerelease found — checking tags"
             TAG=$(curl -s https://api.github.com/repos/$REPO/tags | jq -r '.[0].name')
           fi
 
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
 
+      - name: Fetch upstream-meta branch
+        run: |
+          git fetch origin upstream-meta:upstream-meta || true
+
       - name: Load last processed tag
         id: last_tag
         run: |
-          if git ls-remote --heads origin upstream-meta >/dev/null 2>&1; then
-            git fetch origin upstream-meta:upstream-meta
+          if git rev-parse --verify upstream-meta >/dev/null 2>&1; then
+            git checkout upstream-meta
             LAST=$(cat last_upstream_tag 2>/dev/null || echo "")
           else
             LAST=""
@@ -76,7 +80,10 @@ jobs:
       - name: Compare tags
         id: compare
         run: |
-          if [ "${{ steps.latest_rel.outputs.TAG }}" != "${{ steps.last_tag.outputs.LAST }}" ]; then
+          NEW="${{ steps.latest_rel.outputs.TAG }}"
+          OLD="${{ steps.last_tag.outputs.LAST }}"
+
+          if [ "$NEW" != "$OLD" ]; then
             echo "changed=1" >> $GITHUB_OUTPUT
           else
             echo "changed=0" >> $GITHUB_OUTPUT
