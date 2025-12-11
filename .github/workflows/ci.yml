@@ -1,4 +1,5 @@
 name: CI
+
 on:
   workflow_dispatch:
   schedule:
@@ -8,91 +9,61 @@ jobs:
   check:
     permissions: write-all
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # allow pushing updates to the update branch
           persist-credentials: true
 
       - name: Determine upstream repo
         id: upstream_repo
         run: |
           # Priority:
-          # 1) Repository secret UPSTREAM_REPO (format: owner/repo)
-          # 2) config.json -> upstream_repo key (if exists)
-          # 3) config.toml -> look for upstream_repo, upstream, or repo entry
-          # 4) default to revanced/revanced-patches
+          # 1) UPSTREAM_REPO secret (owner/repo)
+          # 2) config.json -> upstream_repo
+          # 3) config.toml -> upstream_repo / upstream / repo
+          # 4) Default -> revanced/revanced-patches
 
           if [ -n "${{ secrets.UPSTREAM_REPO }}" ]; then
             echo "UPSTREAM=${{ secrets.UPSTREAM_REPO }}" >> $GITHUB_OUTPUT
-            echo "Using UPSTREAM from secret"
             exit 0
           fi
 
-          # Try config.json
-          if [ -f "config.json" ]; then
-            if command -v jq >/dev/null 2>&1; then
-              VAL=$(jq -r '.upstream_repo // empty' config.json)
-              if [ -n "$VAL" ]; then
-                echo "UPSTREAM=$VAL" >> $GITHUB_OUTPUT
-                echo "Found upstream_repo in config.json"
-                exit 0
-              fi
-            else
-              # grep fallback
-              VAL=$(grep -Eo '"?upstream_repo"?\s*:\s*"?[^"]+' config.json | awk -F: '{print $2}' | tr -d ' "')
-              if [ -n "$VAL" ]; then
-                echo "UPSTREAM=$VAL" >> $GITHUB_OUTPUT
-                echo "Found upstream_repo in config.json (grep)"
-                exit 0
-              fi
-            fi
-          fi
-
-          # Try config.toml
-          if [ -f "config.toml" ]; then
-            VAL=$(grep -E 'upstream_repo|upstream|repo' config.toml | head -n1 | sed -E 's/.*=//; s/[ "']+//g' | tr -d '"'"'"' )
+          if [ -f config.json ]; then
+            VAL=$(grep -Eo '"upstream_repo"\s*:\s*"[^"]+' config.json | sed -E 's/.*"upstream_repo"\s*:\s*"//')
             if [ -n "$VAL" ]; then
-              # If user accidentally used full URL, extract owner/repo
-              if echo "$VAL" | grep -q "github.com"; then
-                VAL=$(echo "$VAL" | sed -E 's#.*github.com/([^/]+/[^/]+).*#\1#')
-              fi
               echo "UPSTREAM=$VAL" >> $GITHUB_OUTPUT
-              echo "Found upstream repo in config.toml"
               exit 0
             fi
           fi
 
-          # default
+          if [ -f config.toml ]; then
+            VAL=$(grep -E 'upstream_repo|upstream|repo' config.toml | head -n1 | sed -E 's/.*=//; s/[ "']+//g')
+            if echo "$VAL" | grep -q "github.com"; then
+              VAL=$(echo "$VAL" | sed -E 's#.*github.com/([^/]+/[^/]+).*#\1#')
+            fi
+            if [ -n "$VAL" ]; then
+              echo "UPSTREAM=$VAL" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
           echo "UPSTREAM=revanced/revanced-patches" >> $GITHUB_OUTPUT
-          echo "Defaulting upstream to revanced/revanced-patches"
 
       - name: Get latest upstream commit hash
         id: upstream_commit
         run: |
           UPSTREAM="${{ steps.upstream_repo.outputs.UPSTREAM }}"
-          echo "Checking upstream: $UPSTREAM"
-
-          # Use git ls-remote to get HEAD hash
           LATEST=$(git ls-remote https://github.com/${UPSTREAM}.git HEAD | awk '{print $1}')
-          if [ -z "$LATEST" ]; then
-            echo "LATEST=" >> $GITHUB_OUTPUT
-            echo "Could not determine upstream latest commit (empty)."
-            exit 0
-          fi
           echo "LATEST=$LATEST" >> $GITHUB_OUTPUT
-          echo "Latest upstream commit: $LATEST"
 
-      - name: Get last processed upstream commit from update branch
+      - name: Get last processed upstream commit
         id: last_commit
         run: |
-          # Try to read last_upstream_commit from origin/update
-          # If it's absent, treat as first time building.
           LAST=""
           if git ls-remote --exit-code --heads origin update >/dev/null 2>&1; then
-            # Attempt to fetch the file content at origin/update:last_upstream_commit
             if git show origin/update:last_upstream_commit >/dev/null 2>&1; then
               LAST=$(git show origin/update:last_upstream_commit)
             fi
@@ -107,25 +78,14 @@ jobs:
 
           if [ -z "$LATEST" ]; then
             echo "UPSTREAM_CHANGED=0" >> $GITHUB_OUTPUT
-            echo "No upstream latest commit found — not marking as changed."
-            exit 0
-          fi
-
-          if [ -z "$LAST" ]; then
-            # first time seeing upstream info -> treat as changed so we build and store it
-            echo "UPSTREAM_CHANGED=1" >> $GITHUB_OUTPUT
-            echo "Reason=first_time" >> $GITHUB_OUTPUT
-            echo "LATEST_TO_STORE=$LATEST" >> $GITHUB_OUTPUT
             exit 0
           fi
 
           if [ "$LATEST" != "$LAST" ]; then
             echo "UPSTREAM_CHANGED=1" >> $GITHUB_OUTPUT
-            echo "Reason=hash_mismatch" >> $GITHUB_OUTPUT
             echo "LATEST_TO_STORE=$LATEST" >> $GITHUB_OUTPUT
           else
             echo "UPSTREAM_CHANGED=0" >> $GITHUB_OUTPUT
-            echo "Reason=no_change" >> $GITHUB_OUTPUT
           fi
 
       - name: Should build? (config / update branch check)
@@ -134,37 +94,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Keep your existing logic for config changes and update branch behavior.
           if ! git checkout origin/update build.md; then
-            echo "first time building!"
             echo "SHOULD_BUILD_CFG=1" >> $GITHUB_OUTPUT
           else
             UPDATE_CFG=$(./build.sh config.toml --config-update)
             if [ "$UPDATE_CFG" ]; then
-              echo "'$UPDATE_CFG'"
               echo "SHOULD_BUILD_CFG=1" >> $GITHUB_OUTPUT
             else
               echo "SHOULD_BUILD_CFG=0" >> $GITHUB_OUTPUT
             fi
           fi
 
-      - name: Act on upstream change (persist last_upstream_commit)
+      - name: Save upstream change marker
         if: steps.upstream_changed.outputs.UPSTREAM_CHANGED == '1'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Write the new commit hash into the update branch as last_upstream_commit and push it.
-          # This ensures future runs see the upstream as processed.
           LATEST="${{ steps.upstream_changed.outputs.LATEST_TO_STORE }}"
-          echo "Persisting latest upstream commit to update branch: $LATEST"
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # If update branch exists locally, reuse it; otherwise create orphan / replace
-          # Use force push to ensure branch state is updated.
           if git ls-remote --exit-code --heads origin update >/dev/null 2>&1; then
-            git fetch origin update:update || git fetch origin update:update
+            git fetch origin update:update
             git checkout update
           else
             git checkout --orphan update
@@ -173,28 +122,29 @@ jobs:
 
           echo "$LATEST" > last_upstream_commit
           git add last_upstream_commit
-          # Commit only if changes
+
           if git diff --staged --quiet; then
-            echo "No change to last_upstream_commit file"
+            echo "No changes"
           else
-            git commit -m "Update last_upstream_commit -> ${LATEST}" || true
-            # push with token available through checkout persist-credentials
-            git push --set-upstream origin update --force
+            git commit -m "Update last_upstream_commit -> ${LATEST}"
+            git push --force origin update
           fi
 
       - name: Clear older runs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh run list -L400 --json databaseId -q '.[].databaseId' | tail -n+10 | xargs -IID gh api "repos/$GITHUB_REPOSITORY/actions/runs/ID" -X DELETE || :
+          gh run list -L400 --json databaseId -q '.[].databaseId' \
+            | tail -n+10 \
+            | xargs -IID gh api "repos/$GITHUB_REPOSITORY/actions/runs/ID" -X DELETE || :
 
     outputs:
-  CFG_SHOULD_BUILD: ${{ steps.should_build.outputs.SHOULD_BUILD_CFG }}
-  UPSTREAM_SHOULD_BUILD: ${{ steps.upstream_changed.outputs.UPSTREAM_CHANGED }}
+      CFG_SHOULD_BUILD: ${{ steps.should_build.outputs.SHOULD_BUILD_CFG }}
+      UPSTREAM_SHOULD_BUILD: ${{ steps.upstream_changed.outputs.UPSTREAM_CHANGED }}
+
   build:
     permissions: write-all
     needs: check
     uses: ./.github/workflows/build.yml
-    # Evaluate combined outputs: build when either cfg or upstream says so.
     if: ${{ needs.check.outputs.CFG_SHOULD_BUILD == '1' || needs.check.outputs.UPSTREAM_SHOULD_BUILD == '1' }}
     secrets: inherit
