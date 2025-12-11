@@ -1,0 +1,105 @@
+name: Watch Upstream ReVanced Releases
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # check every 15 min
+  workflow_dispatch:
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    steps:
+      - name: Determine upstream repo
+        id: upstream
+        run: |
+          # Priority:
+          # 1) UPSTREAM_REPO secret
+          # 2) config.json
+          # 3) config.toml
+          # 4) default to revanced/revanced-patches
+
+          if [ -n "${{ secrets.UPSTREAM_REPO }}" ]; then
+            echo "repo=${{ secrets.UPSTREAM_REPO }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ -f config.json ]; then
+            VAL=$(grep -Eo '"upstream_repo"\s*:\s*"[^"]+' config.json | sed -E 's/.*"upstream_repo"\s*:\s*"//' )
+            if [ -n "$VAL" ]; then
+              echo "repo=$VAL" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          if [ -f config.toml ]; then
+            VAL=$(grep -E 'upstream_repo|upstream|repo' config.toml | head -n1 | sed -E 's/.*=//; s/[ "']+//g')
+            if echo "$VAL" | grep -q "github.com"; then
+              VAL=$(echo "$VAL" | sed -E 's#.*github.com/([^/]+/[^/]+).*#\1#')
+            fi
+            if [ -n "$VAL" ]; then
+              echo "repo=$VAL" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          echo "repo=revanced/revanced-patches" >> $GITHUB_OUTPUT
+
+      - name: Get latest upstream release
+        id: latest_rel
+        run: |
+          REPO=${{ steps.upstream.outputs.repo }}
+          echo "Checking releases for $REPO"
+
+          # get latest tag (release or prerelease)
+          TAG=$(curl -s https://api.github.com/repos/$REPO/releases | jq -r '.[0].tag_name' )
+
+          if [ "$TAG" = "null" ] || [ -z "$TAG" ]; then
+            # fallback to dev/nightly (latest commit tag)
+            TAG=$(curl -s https://api.github.com/repos/$REPO/tags | jq -r '.[0].name')
+          fi
+
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Load last processed tag
+        id: last_tag
+        run: |
+          if git ls-remote --heads origin upstream-meta >/dev/null 2>&1; then
+            git fetch origin upstream-meta:upstream-meta
+            LAST=$(cat last_upstream_tag 2>/dev/null || echo "")
+          else
+            LAST=""
+          fi
+          echo "LAST=$LAST" >> $GITHUB_OUTPUT
+
+      - name: Compare tags
+        id: compare
+        run: |
+          if [ "${{ steps.latest_rel.outputs.TAG }}" != "${{ steps.last_tag.outputs.LAST }}" ]; then
+            echo "changed=1" >> $GITHUB_OUTPUT
+          else
+            echo "changed=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Save new tag
+        if: steps.compare.outputs.changed == '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          git checkout -B upstream-meta
+          echo "${{ steps.latest_rel.outputs.TAG }}" > last_upstream_tag
+          git add last_upstream_tag
+          git commit -m "Update upstream tag"
+          git push -f origin upstream-meta
+
+      - name: Trigger main CI build
+        if: steps.compare.outputs.changed == '1'
+        run: |
+          echo "Upstream changed → triggering CI"
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/ci.yml/dispatches \
+            -d '{"ref":"main"}'
