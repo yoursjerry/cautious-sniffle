@@ -11,7 +11,7 @@ dpi = "480"
 #apkmirror-dlurl = "https://apkmirror.com/apk/instagram/instagram-instagram/"
 uptodown-dlurl = "https://instagram.en.uptodown.com/android"
 build-mode = "apk"
-included-patches = "'Hide ads' 'Sanitize sharing links' 'Disable signature check'"
+included-patches = "'Hide ads' 'Sanitize sharing links' 'Disable signature check''Open links externally'"
 exclusive-patches = true
 
 [Reddit]
