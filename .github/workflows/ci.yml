@@ -189,14 +189,12 @@ jobs:
           gh run list -L400 --json databaseId -q '.[].databaseId' | tail -n+10 | xargs -IID gh api "repos/$GITHUB_REPOSITORY/actions/runs/ID" -X DELETE || :
 
     outputs:
-      # Combine config-based decision and upstream-based decision:
-      SHOULD_BUILD: ${{ fromJSON('{"cfg": "' || steps.should_build.outputs.SHOULD_BUILD_CFG || '", "up": "' || steps.upstream_changed.outputs.UPSTREAM_CHANGED || '" }') }}
-
-  # consumer (build) job that reuses your existing build workflow
+  CFG_SHOULD_BUILD: ${{ steps.should_build.outputs.SHOULD_BUILD_CFG }}
+  UPSTREAM_SHOULD_BUILD: ${{ steps.upstream_changed.outputs.UPSTREAM_CHANGED }}
   build:
     permissions: write-all
     needs: check
     uses: ./.github/workflows/build.yml
     # Evaluate combined outputs: build when either cfg or upstream says so.
-    if: ${{ needs.check.outputs.SHOULD_BUILD != '' && ( fromJson(needs.check.outputs.SHOULD_BUILD).cfg == '1' || fromJson(needs.check.outputs.SHOULD_BUILD).up == '1' ) }}
+    if: ${{ needs.check.outputs.CFG_SHOULD_BUILD == '1' || needs.check.outputs.UPSTREAM_SHOULD_BUILD == '1' }}
     secrets: inherit
