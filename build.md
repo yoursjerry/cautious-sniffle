@@ -1,3 +1,4 @@
+Reddit: 2024.17.0  
 Twitter: 10.86.0-release.0  
 Instagram: 409.0.0.48.170  
 
@@ -7,13 +8,9 @@ Use [zygisk-detach](https://github.com/j-hc/zygisk-detach) to detach root ReVanc
 [revanced-magisk-module](https://github.com/j-hc/revanced-magisk-module)
   
 CLI: j-hc/revanced-cli-5.0.0-all.jar  
-Patches: ReVanced/patches-5.47.0-dev.13.rvp  
-[Changelog](https://github.com/ReVanced/revanced-patches/releases/tag/v5.47.0-dev.13)
+Patches: ReVanced/patches-5.47.0-dev.14.rvp  
+[Changelog](https://github.com/ReVanced/revanced-patches/releases/tag/v5.47.0-dev.14)
 
 CLI: j-hc/revanced-cli-5.0.0-all.jar  
 CLI: j-hc/revanced-cli-5.0.0-all.jar  
 CLI: j-hc/revanced-cli-5.0.0-all.jar    
-
-Skipped:  
-Patches: ReVanced/patches-5.47.0-dev.13.rvp  
-Patches: ReVanced/patches-5.47.0-dev.13.rvp      
