@@ -11,7 +11,7 @@ dpi = "480"
 uptodown-dlurl = "https://instagram.en.uptodown.com/android"
 build-mode = "apk"
 riplib = true
-included-patches = "'Hide ads' 'Sanitize sharing links' 'Disable signature check''Open links externally'"
+included-patches = "'Hide ads' 'Sanitize sharing links' 'Disable signature check''Open links externally' "
 exclusive-patches = true
 
 [Instagram-apkp]
@@ -19,7 +19,7 @@ apkpure-dlurl = "https://apkpure.com/instagram-android-2025/com.instagram.androi
 included-patches = "'Hide ads' 'Sanitize sharing links' 'Disable signature check''Open links externally'"
 exclusive-patches = true
 enable-magisk-update = true
-arch = "all"
+arch = "arm64-v8a"
 dpi = "480"
 version = "latest"
 riplib = true
