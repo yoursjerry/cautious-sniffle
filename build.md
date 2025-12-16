@@ -1,4 +1,3 @@
-Reddit: 2024.17.0  
 Twitter: 10.86.0-release.0  
 Instagram: 409.0.0.48.170  
 
