@@ -14,17 +14,6 @@ riplib = true
 included-patches = "'Hide ads' 'Sanitize sharing links' 'Disable signature check''Open links externally' "
 exclusive-patches = true
 
-[Instagram-apkp]
-apkpure-dlurl = "https://apkpure.com/instagram-android-2025/com.instagram.android"
-included-patches = "'Hide ads' 'Sanitize sharing links' 'Disable signature check''Open links externally'"
-exclusive-patches = true
-enable-magisk-update = true
-arch = "arm64-v8a"
-dpi = "480"
-version = "latest"
-riplib = true
-build-mode = "both"
-
 [Reddit]
 apkmirror-dlurl = "https://apkmirror.com/apk/redditinc/reddit/"
 arch = "arm64-v8a"
